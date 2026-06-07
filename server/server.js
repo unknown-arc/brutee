@@ -1,44 +1,42 @@
-// index.js
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
+import dns from 'node:dns/promises';
+dns.setServers(['1.1.1.1', '8.8.8.8']);
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from "cors";
 
-// Initialize dotenv to read from .env file
+import authRoutes from "./src/routes/authRoutes.js";
+import subjectRoutes from "./src/routes/subjectRoutes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
+import facultyRoutes from "./src/routes/facultyRoutes.js";
+import questionRoutes from "./src/routes/questionRoutes.js";
+import examRoutes from "./src/routes/examRoutes.js";
+import sessionRoutes from "./src/routes/sessionRoutes.js";
+
 dotenv.config();
-
 const app = express();
-const prisma = new PrismaClient();
-const PORT = process.env.PORT || 3000;
 
-// Middleware to parse JSON bodies
 app.use(express.json());
+app.use(cors());
 
-// --- ROUTES ---
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected Successfully"))
+  .catch((err) => console.log("DB Connection Error: ", err));
 
-// Create a new user
-app.post('/users', async (req, res) => {
-  try {
-    const { email, name } = req.body;
-    const newUser = await prisma.user.create({
-      data: { email, name },
-    });
-    res.status(201).json(newUser);
-  } catch (error) {
-    res.status(400).json({ error: "Email might already exist or invalid data." });
-  }
-});
+// Mount Routes
+app.get('/', (req, res) => {
+    res.json({message : "Backend Working!"})
+})
+app.use("/api/auth", authRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/faculty", facultyRoutes);
+app.use("/api/questions", questionRoutes);
+app.use("/api/exams", examRoutes);
+app.use("/api/sessions", sessionRoutes);
 
-// Get all users
-app.get('/users', async (req, res) => {
-  try {
-    const users = await prisma.user.findMany();
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users." });
-  }
-});
-
-// Start the server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
