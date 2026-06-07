@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Student from "../models/Student.js";
 
 export const protectRoute = async (req, res, next) => {
   let token;
@@ -8,16 +9,30 @@ export const protectRoute = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Fetch user without password
-      req.user = await User.findById(decoded.id).select("-password");
+      // Try to fetch as staff user first
+      let user = await User.findById(decoded.id).select("-password");
+      
+      // If not found, try to fetch as student
+      if (!user) {
+        user = await Student.findById(decoded.id).select("-password");
+        if (user) {
+          user.role = 'STUDENT'; // Ensure role is set for students
+        }
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      req.user = user;
       next();
     } catch (error) {
       res.status(401).json({ message: "Not authorized, token failed" });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: "Not authorized, no token" });
+  } else {
+    if (!token) {
+      res.status(401).json({ message: "Not authorized, no token" });
+    }
   }
 };
 
