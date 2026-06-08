@@ -1,69 +1,243 @@
-// controllers/facultyController.js
+import bcrypt from "bcryptjs";
 import { Faculty } from "../models/User.js";
 import Subject from "../models/Subject.js";
-import bcrypt from "bcryptjs";
 
+// CREATE FACULTY
 export const createFaculty = async (req, res) => {
   try {
-    const { name, email, password, permissions } = req.body;
+    const {
+      name,
+      email,
+      password,
+      permissions,
+    } = req.body;
 
-    // 1. Find the subject that this specific Professor manages
-    // req.user._id comes from the logged-in Professor's token
-    const subject = await Subject.findOne({ assignedProfessor: req.user._id });
-    
-    if (!subject) {
-      return res.status(403).json({ 
-        message: "Action denied: You are not assigned to manage any subject yet." 
+    const existingFaculty =
+      await Faculty.findOne({ email });
+
+    if (existingFaculty) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Faculty with this email already exists",
       });
     }
 
-    // 2. Hash the password for the new faculty member
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const subject =
+      await Subject.findOne({
+        assignedProfessor: req.user._id,
+      });
 
-    // 3. Create the Faculty document
-    // We pass permissions dynamically, or fallback to defaults
-    const newFaculty = await Faculty.create({
-      name,
-      email,
-      password: hashedPassword,
-      assignedSubject: subject._id,
-      reportingTo: req.user._id, 
-      permissions: permissions || { 
-        canCreateQuestion: true, 
-        canEditSyllabus: false 
-      }
-    });
+    if (!subject) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not assigned to any subject",
+      });
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(password, 10);
+
+    const faculty =
+      await Faculty.create({
+        name,
+        email,
+        password: hashedPassword,
+
+        assignedSubject: subject._id,
+
+        reportingTo: req.user._id,
+
+        permissions:
+          permissions || {
+            canCreateQuestion: true,
+            canEditQuestion: false,
+            canDeleteQuestion: false,
+
+            canCreateExam: false,
+            canEditExam: false,
+
+            canViewStudents: true,
+            canManageStudents: false,
+
+            canViewResults: true,
+          },
+      });
 
     res.status(201).json({
-      message: "Faculty member successfully added to your subject",
-      faculty: {
-        _id: newFaculty._id,
-        name: newFaculty.name,
-        email: newFaculty.email,
-        role: newFaculty.role,
-        permissions: newFaculty.permissions
-      },
-      subject: subject.name
+      success: true,
+      message:
+        "Faculty created successfully",
+      faculty,
     });
-
   } catch (error) {
-    // Handle duplicate email constraint from MongoDB
-    if (error.code === 11000) {
-      return res.status(400).json({ message: "Faculty with this email already exists" });
-    }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Fetch faculty added by this specific professor
-export const getFaculty = async (req, res) => {
+// GET ALL FACULTY OF PROFESSOR
+export const getFaculty = async (
+  req,
+  res
+) => {
   try {
-    const facultyList = await Faculty.find({ reportingTo: req.user._id })
-      .select("-password") // Never send passwords to frontend
-      .populate("assignedSubject", "name");
-      
-    res.status(200).json(facultyList);
+    const facultyList =
+      await Faculty.find({
+        reportingTo: req.user._id,
+      })
+        .select("-password")
+        .populate(
+          "assignedSubject",
+          "name subjectCode"
+        );
+
+    res.status(200).json({
+      success: true,
+      count: facultyList.length,
+      faculty: facultyList,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// GET SINGLE FACULTY
+export const getFacultyById = async (
+  req,
+  res
+) => {
+  try {
+    const faculty =
+      await Faculty.findById(
+        req.params.id
+      )
+        .select("-password")
+        .populate(
+          "assignedSubject",
+          "name subjectCode"
+        );
+
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Faculty not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      faculty,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// UPDATE FACULTY
+export const updateFaculty = async (req, res) => {
+  try {
+    const faculty = await Faculty.findById(
+      req.params.id
+    );
+
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message: "Faculty not found",
+      });
+    }
+
+    // SECURITY CHECK
+    if (
+      faculty.reportingTo.toString() !==
+      req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized action",
+      });
+    }
+
+    const {
+      name,
+      email,
+      permissions,
+    } = req.body;
+
+    faculty.name =
+      name || faculty.name;
+
+    faculty.email =
+      email || faculty.email;
+
+    if (permissions) {
+      faculty.permissions =
+        permissions;
+    }
+
+    await faculty.save();
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Faculty updated successfully",
+      faculty,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// DELETE FACULTY
+export const deleteFaculty = async (req, res) => {
+  try {
+    const faculty = await Faculty.findById(
+      req.params.id
+    );
+
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message: "Faculty not found",
+      });
+    }
+
+    // SECURITY CHECK
+    if (
+      faculty.reportingTo.toString() !==
+      req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized action",
+      });
+    }
+
+    await faculty.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Faculty deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

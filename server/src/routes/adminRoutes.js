@@ -1,18 +1,74 @@
 import express from "express";
-import { seedSuperAdmin, createProfessor } from "../controllers/adminController.js";
-import { protectRoute, authorizeRoles } from "../middleware/authMiddleware.js";
+
+import {
+  seedSuperAdmin,
+  createProfessor,
+  getProfessors,
+  getProfessorById,
+  updateProfessor,
+  deleteProfessor,
+} from "../controllers/adminController.js";
+
+import {
+  protectRoute,
+  authorizeRoles,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public route just for initial setup (REMOVE IN PRODUCTION)
+/*
+|--------------------------------------------------------------------------
+| INITIAL SETUP
+|--------------------------------------------------------------------------
+*/
+
+// REMOVE IN PRODUCTION
 router.post("/seed", seedSuperAdmin);
 
-// Protected route: Only SUPER_ADMIN can create a Professor
+/*
+|--------------------------------------------------------------------------
+| PROFESSOR MANAGEMENT
+|--------------------------------------------------------------------------
+*/
+
+// Create Professor
 router.post(
-  "/create-professor",
+  "/professors",
   protectRoute,
   authorizeRoles("SUPER_ADMIN"),
   createProfessor
+);
+
+// Get All Professors
+router.get(
+  "/professors",
+  protectRoute,
+  authorizeRoles("SUPER_ADMIN"),
+  getProfessors
+);
+
+// Get Single Professor
+router.get(
+  "/professors/:id",
+  protectRoute,
+  authorizeRoles("SUPER_ADMIN"),
+  getProfessorById
+);
+
+// Update Professor
+router.put(
+  "/professors/:id",
+  protectRoute,
+  authorizeRoles("SUPER_ADMIN"),
+  updateProfessor
+);
+
+// Delete Professor
+router.delete(
+  "/professors/:id",
+  protectRoute,
+  authorizeRoles("SUPER_ADMIN"),
+  deleteProfessor
 );
 
 export default router;

@@ -14,6 +14,7 @@ import questionRoutes from "./src/routes/questionRoutes.js";
 import examRoutes from "./src/routes/examRoutes.js";
 import sessionRoutes from "./src/routes/sessionRoutes.js";
 import securityRoutes from "./src/routes/securityRoutes.js";
+import path from "node:path";
 
 dotenv.config();
 const app = express();
@@ -39,6 +40,16 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/security", securityRoutes);
+
+// Serve client in production
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.join(process.cwd(), "client", "dist");
+  app.use(express.static(clientDist));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

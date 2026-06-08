@@ -1,17 +1,88 @@
-// routes/examRoutes.js
 import express from "express";
-import { createExam, getExams } from "../controllers/examController.js";
-import { protectRoute, authorizeRoles } from "../middleware/authMiddleware.js";
+
+import {
+  createExam,
+  getExams,
+  getExamById,
+  updateExam,
+  deleteExam,
+  publishExam,
+  getAvailableExams,
+} from "../controllers/examController.js";
+
+import {
+  protectRoute,
+  authorizeRoles,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// PROFESSOR ONLY: Route to create a new exam paper
+/*
+|--------------------------------------------------------------------------
+| PROFESSOR EXAM MANAGEMENT
+|--------------------------------------------------------------------------
+*/
+
+// Create Exam
 router.post(
-  "/create",
+  "/",
   protectRoute,
   authorizeRoles("PROFESSOR"),
   createExam
 );
-router.get("/", protectRoute, authorizeRoles("PROFESSOR"), getExams);
+
+// Get All Exams Created By Professor
+router.get(
+  "/",
+  protectRoute,
+  authorizeRoles("PROFESSOR"),
+  getExams
+);
+
+// Get Single Exam
+router.get(
+  "/:id",
+  protectRoute,
+  authorizeRoles("PROFESSOR"),
+  getExamById
+);
+
+// Update Exam
+router.put(
+  "/:id",
+  protectRoute,
+  authorizeRoles("PROFESSOR"),
+  updateExam
+);
+
+// Delete Exam
+router.delete(
+  "/:id",
+  protectRoute,
+  authorizeRoles("PROFESSOR"),
+  deleteExam
+);
+
+// Publish / Activate Exam
+router.patch(
+  "/:id/publish",
+  protectRoute,
+  authorizeRoles("PROFESSOR"),
+  publishExam
+);
+
+/*
+|--------------------------------------------------------------------------
+| STUDENT EXAM ACCESS
+|--------------------------------------------------------------------------
+*/
+
+// Available Exams For Students
+router.get(
+  "/available/list",
+  protectRoute,
+  authorizeRoles("STUDENT"),
+  getAvailableExams
+);
 
 export default router;

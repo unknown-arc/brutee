@@ -78,3 +78,81 @@ export const createProfessor = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getProfessors = async (req, res) => {
+  try {
+    const professors = await Professor.find()
+      .select("-password");
+
+    res.status(200).json(professors);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+    });
+  }
+};
+
+// Get single professor by id
+export const getProfessorById = async (req, res) => {
+    try {
+        const professor = await Professor.findById(req.params.id).select('-password');
+
+        if (!professor) {
+            return res.status(404).json({ message: 'Professor not found' });
+        }
+
+        res.status(200).json({ professor });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Update professor
+export const updateProfessor = async (req, res) => {
+    try {
+        const professor = await Professor.findById(req.params.id);
+
+        if (!professor) {
+            return res.status(404).json({ message: 'Professor not found' });
+        }
+
+        const { name, email, password } = req.body;
+
+        professor.name = name || professor.name;
+        professor.email = email || professor.email;
+
+        if (password) {
+            const hashed = await bcrypt.hash(password, 10);
+            professor.password = hashed;
+        }
+
+        await professor.save();
+
+        res.status(200).json({ message: 'Professor updated successfully', professor });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'Email already exists' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Delete professor
+export const deleteProfessor = async (req, res) => {
+    try {
+        const professor = await Professor.findById(req.params.id);
+
+        if (!professor) {
+            return res.status(404).json({ message: 'Professor not found' });
+        }
+
+        await professor.deleteOne();
+
+        // Optionally unassign from subjects
+        await Subject.updateMany({ assignedProfessor: professor._id }, { $unset: { assignedProfessor: '' } });
+
+        res.status(200).json({ message: 'Professor deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

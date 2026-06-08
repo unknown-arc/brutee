@@ -9,8 +9,8 @@ const examSessionSchema = new mongoose.Schema(
       required: true,
     },
     candidateId: {
-      type: String, // String reference since student data is handled elsewhere
-      required: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student"
     },
     pairingToken: {
       type: String, // The token embedded in the QR code

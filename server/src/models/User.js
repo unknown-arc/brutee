@@ -46,15 +46,24 @@ export const Faculty = User.discriminator(
         ref: "Subject",
         required: true,
       },
-      createdBy: {
+      reportingTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
       },
       permissions: {
-        canCreateQuestion: { type: Boolean, default: true },
-        canEditSyllabus: { type: Boolean, default: false },
-      },
+        canCreateQuestion: Boolean,
+        canEditQuestion: Boolean,
+        canDeleteQuestion: Boolean,
+
+        canCreateExam: Boolean,
+        canEditExam: Boolean,
+
+        canViewStudents: Boolean,
+        canManageStudents: Boolean,
+
+        canViewResults: Boolean
+      }
     },
     { _id: false }
   )

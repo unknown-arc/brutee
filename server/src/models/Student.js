@@ -3,43 +3,105 @@ import bcryptjs from "bcryptjs";
 
 const StudentSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    rollNumber: { type: String, required: true, unique: true },
-    department: { type: String, default: null },
-    enrolledSubjects: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Subject",
-      },
-    ],
-    examsSessions: [
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+    },
+
+    password: {
+      type: String,
+      required: true,
+    },
+
+    rollNumber: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+
+    department: {
+      type: String,
+      default: null,
+    },
+
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true,
+    },
+
+    semester: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 8,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "ACTIVE",
+        "BLOCKED",
+      ],
+      default: "ACTIVE",
+    },
+
+    examSessions: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ExamSession",
       },
     ],
   },
-  { timestamps: true, collection: "students" }
+  {
+    timestamps: true,
+    collection: "students",
+  }
 );
 
-// Hash password before saving
-StudentSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  try {
-    const salt = await bcryptjs.genSalt(10);
-    this.password = await bcryptjs.hash(this.password, salt);
+StudentSchema.pre(
+  "save",
+  async function (next) {
+    if (
+      !this.isModified(
+        "password"
+      )
+    ) {
+      return next();
+    }
+
+    const salt =
+      await bcryptjs.genSalt(10);
+
+    this.password =
+      await bcryptjs.hash(
+        this.password,
+        salt
+      );
+
     next();
-  } catch (error) {
-    next(error);
   }
-});
+);
 
-// Method to compare passwords
-StudentSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcryptjs.compare(enteredPassword, this.password);
-};
+StudentSchema.methods.matchPassword =
+  async function (
+    enteredPassword
+  ) {
+    return bcryptjs.compare(
+      enteredPassword,
+      this.password
+    );
+  };
 
-const Student = mongoose.model("Student", StudentSchema);
-export default Student;
+export default mongoose.model(
+  "Student",
+  StudentSchema
+);

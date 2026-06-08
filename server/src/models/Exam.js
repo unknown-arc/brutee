@@ -38,6 +38,21 @@ const examSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: false, // Will be true when exam goes live
+    },
+    status: {
+      type: String,
+      enum: [
+        "DRAFT",
+        "SCHEDULED",
+        "ACTIVE",
+        "COMPLETED"
+      ],
+      default: "DRAFT"
+    },
+
+    isPublished: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }
